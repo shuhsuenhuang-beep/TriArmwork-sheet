@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>公司工作進度看板</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Helvetica Neue",Arial,sans-serif;background:#F3F4F6;color:#1F2937;min-height:100vh}
+.top-bar{display:flex;align-items:center;justify-content:space-between;padding:14px 24px;background:#fff;border-bottom:1px solid #E5E7EB;gap:12px;flex-wrap:wrap;position:sticky;top:0;z-index:50}
+.top-title{font-size:16px;font-weight:600;color:#111827}
+.top-meta{font-size:12px;color:#6B7280;margin-top:2px}
+.controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.ctrl-btn{font-size:12px;padding:6px 12px;border-radius:8px;border:1px solid #D1D5DB;background:#fff;color:#6B7280;cursor:pointer;transition:all .15s}
+.ctrl-btn:hover{border-color:#9CA3AF;color:#374151}
+.ctrl-btn.active{background:#EFF6FF;color:#1D4ED8;border-color:#BFDBFE;font-weight:500}
+.ctrl-btn.add{border-color:#BFDBFE;color:#1D4ED8;background:#EFF6FF}
+.ctrl-btn.add:hover{background:#DBEAFE}
+.summary-bar{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;padding:16px 24px;background:#fff;border-bottom:1px solid #E5E7EB}
+.stat-card{background:#F9FAFB;border-radius:8px;padding:10px 14px;border:1px solid #F3F4F6}
+.stat-label{font-size:11px;color:#6B7280;margin-bottom:4px}
+.stat-val{font-size:22px;font-weight:600;color:#111827}
+.stat-val.done{color:#059669}
+.stat-val.inprog{color:#2563EB}
+.stat-val.notstarted{color:#9CA3AF}
+.ticker-wrap{background:#EFF6FF;border-bottom:1px solid #BFDBFE;overflow:hidden;white-space:nowrap}
+.ticker-inner{display:inline-flex;gap:32px;padding:7px 0;animation:ticker 40s linear infinite;font-size:12px;color:#1D4ED8}
+@keyframes ticker{0%{transform:translateX(100vw)}100%{transform:translateX(-100%)}}
+.filter-row{display:flex;gap:6px;padding:12px 24px 0;flex-wrap:wrap;background:#fff;border-bottom:1px solid #E5E7EB;padding-bottom:12px}
+.board{padding:20px 24px;display:grid;gap:16px}
+.dept-row{background:#fff;border:1px solid #E5E7EB;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.dept-header{display:flex;align-items:center;justify-content:space-between;padding:12px 18px;cursor:pointer;user-select:none;transition:background .1s}
+.dept-header:hover{background:#F9FAFB}
+.dept-name-row{display:flex;align-items:center;gap:10px}
+.dept-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.dept-name{font-size:14px;font-weight:600;color:#111827}
+.dept-sub{font-size:11px;color:#9CA3AF;margin-top:1px}
+.dept-pills{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.pill{font-size:11px;padding:3px 9px;border-radius:99px;font-weight:500}
+.pill-done{background:#D1FAE5;color:#065F46}
+.pill-prog{background:#DBEAFE;color:#1E40AF}
+.pill-wait{background:#F3F4F6;color:#6B7280}
+.tasks-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px;padding:0 16px 16px}
+.task-card{border:1px solid #E5E7EB;border-radius:8px;padding:12px;cursor:pointer;transition:border-color .15s,box-shadow .15s;background:#fff}
+.task-card:hover{border-color:#93C5FD;box-shadow:0 2px 8px rgba(37,99,235,.08)}
+.task-top{display:flex;justify-content:space-between;align-items:flex-start;gap:6px;margin-bottom:6px}
+.task-name{font-size:12px;font-weight:600;color:#111827;line-height:1.4}
+.status-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:3px}
+.s-done{background:#059669}
+.s-prog{background:#2563EB}
+.s-wait{background:#D1D5DB}
+.task-desc{font-size:11px;color:#6B7280;line-height:1.5;margin-bottom:8px}
+.task-foot{display:flex;justify-content:space-between;align-items:center}
+.task-person{font-size:11px;color:#6B7280;display:flex;align-items:center;gap:4px}
+.progress-bar-wrap{height:3px;background:#F3F4F6;border-radius:2px;margin-bottom:7px}
+.progress-bar{height:100%;border-radius:2px;transition:width .3s}
+.pct-txt{font-size:10px;color:#9CA3AF}
+.collab-badge{font-size:10px;padding:2px 6px;border-radius:99px;background:#FEF3C7;color:#92400E;display:flex;align-items:center;gap:3px}
+.toggle-icon{color:#9CA3AF;font-size:14px;transition:transform .2s}
+.dept-row.collapsed .toggle-icon{transform:rotate(-90deg)}
+.add-btn{display:flex;align-items:center;gap:6px;font-size:12px;padding:7px 16px;border-radius:8px;border:1px dashed #D1D5DB;background:#fff;color:#9CA3AF;cursor:pointer;margin:0 16px 16px;transition:all .15s}
+.add-btn:hover{border-color:#93C5FD;color:#2563EB;background:#EFF6FF}
+/* Modal */
+.modal-wrap{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:200;align-items:center;justify-content:center}
+.modal-wrap.open{display:flex}
+.modal{background:#fff;border-radius:14px;border:1px solid #E5E7EB;padding:24px;width:min(500px,94vw);max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.15)}
+.modal-title{font-size:16px;font-weight:600;margin-bottom:18px;color:#111827;display:flex;align-items:center;gap:8px}
+.form-row{margin-bottom:14px}
+.form-label{font-size:12px;color:#6B7280;margin-bottom:5px;display:block;font-weight:500}
+.form-row input,.form-row select,.form-row textarea{width:100%;font-size:13px;border:1px solid #D1D5DB;border-radius:8px;padding:8px 10px;background:#fff;color:#111827;outline:none;transition:border-color .15s}
+.form-row input:focus,.form-row select:focus,.form-row textarea:focus{border-color:#93C5FD;box-shadow:0 0 0 3px rgba(147,197,253,.2)}
+.form-row textarea{height:75px;resize:vertical}
+.pct-row{display:flex;align-items:center;gap:10px}
+.pct-row input[type=range]{flex:1}
+.pct-num{font-size:13px;font-weight:600;color:#1D4ED8;min-width:36px;text-align:right}
+.modal-btns{display:flex;gap:8px;justify-content:flex-end;margin-top:20px;padding-top:16px;border-top:1px solid #F3F4F6}
+.btn-save{font-size:13px;padding:8px 20px;border-radius:8px;border:none;background:#2563EB;color:#fff;cursor:pointer;font-weight:500;transition:background .15s}
+.btn-save:hover{background:#1D4ED8}
+.btn-del{font-size:13px;padding:8px 14px;border-radius:8px;border:1px solid #FCA5A5;background:#FEF2F2;color:#DC2626;cursor:pointer;margin-right:auto;transition:all .15s}
+.btn-del:hover{background:#FEE2E2}
+.btn-cancel{font-size:13px;padding:8px 16px;border-radius:8px;border:1px solid #D1D5DB;background:#fff;color:#6B7280;cursor:pointer}
+.empty-state{text-align:center;padding:32px;color:#9CA3AF;font-size:13px}
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <div>
+    <div class="top-title"><i class="ti ti-layout-kanban" style="font-size:16px;vertical-align:-2px;margin-right:6px"></i>公司工作進度看板</div>
+    <div class="top-meta" id="last-update"></div>
+  </div>
+  <div class="controls">
+    <button class="ctrl-btn active" onclick="filterStatus('all',this)">全部</button>
+    <button class="ctrl-btn" onclick="filterStatus('進行中',this)"><i class="ti ti-circle-dot" style="font-size:11px;vertical-align:-1px;margin-right:2px"></i>進行中</button>
+    <button class="ctrl-btn" onclick="filterStatus('尚未開始',this)">尚未開始</button>
+    <button class="ctrl-btn" onclick="filterStatus('已完成',this)"><i class="ti ti-check" style="font-size:11px;vertical-align:-1px;margin-right:2px"></i>已完成</button>
+    <button class="ctrl-btn add" onclick="openAdd()"><i class="ti ti-plus" style="font-size:12px;vertical-align:-1px"></i> 新增工作</button>
+  </div>
+</div>
+
+<div class="summary-bar" id="summary-bar"></div>
+<div class="filter-row" id="dept-filter-row"></div>
+<div class="ticker-wrap"><div class="ticker-inner" id="ticker-inner"></div></div>
+<div class="board" id="board"></div>
+
+<!-- Modal -->
+<div class="modal-wrap" id="modal" onclick="closeModal(event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-title" id="modal-title"><i class="ti ti-file-plus" style="font-size:18px;color:#2563EB"></i>新增工作項目</div>
+    <div class="form-row">
+      <label class="form-label">部門</label>
+      <select id="f-dept"></select>
+    </div>
+    <div class="form-row">
+      <label class="form-label">工作項目名稱 *</label>
+      <input type="text" id="f-name" placeholder="例：ARM011細胞擴增優化">
+    </div>
+    <div class="form-row">
+      <label class="form-label">工作描述</label>
+      <textarea id="f-desc" placeholder="說明工作內容及預期目標"></textarea>
+    </div>
+    <div class="form-row">
+      <label class="form-label">負責人</label>
+      <input type="text" id="f-person" placeholder="姓名">
+    </div>
+    <div class="form-row">
+      <label class="form-label">協作部門（選填）</label>
+      <input type="text" id="f-collab" placeholder="例：QC、QA">
+    </div>
+    <div class="form-row">
+      <label class="form-label">工作進度</label>
+      <select id="f-status">
+        <option>尚未開始</option>
+        <option>進行中</option>
+        <option>已完成</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <label class="form-label">完成百分比</label>
+      <div class="pct-row">
+        <input type="range" min="0" max="100" step="5" value="0" id="f-pct" oninput="document.getElementById('f-pct-val').textContent=this.value+'%'">
+        <span class="pct-num" id="f-pct-val">0%</span>
+      </div>
+    </div>
+    <div class="form-row">
+      <label class="form-label">預計完成日</label>
+      <input type="date" id="f-due">
+    </div>
+    <div class="modal-btns">
+      <button class="btn-del" id="btn-del" onclick="deleteTask()" style="display:none"><i class="ti ti-trash" style="font-size:13px;vertical-align:-1px"></i> 刪除</button>
+      <button class="btn-cancel" onclick="closeModal()">取消</button>
+      <button class="btn-save" onclick="saveTask()"><i class="ti ti-check" style="font-size:13px;vertical-align:-1px"></i> 儲存</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const DEPTS=[
+  {id:"PD",name:"PD 製程開發",color:"#2563EB"},
+  {id:"QC",name:"QC 品質管制",color:"#059669"},
+  {id:"QA",name:"QA 品質保證",color:"#D97706"},
+  {id:"倉庫",name:"倉庫 / 採購",color:"#9333EA"},
+  {id:"RD",name:"RD 研究開發",color:"#0891B2"},
+  {id:"臨床",name:"臨床試驗組",color:"#DC2626"},
+];
+
+const DEFAULT_TASKS=[
+  {id:1,dept:"PD",name:"ARM011細胞擴增製程優化",desc:"優化CAR-T細胞擴增條件，提升細胞活性及轉導效率",person:"王小明",collab:"QC、QA",status:"進行中",pct:45,due:"2026-06-30"},
+  {id:2,dept:"PD",name:"轉導條件篩選試驗",desc:"篩選最佳慢病毒轉導MOI值及轉導時間點",person:"王小明",collab:"",status:"已完成",pct:100,due:"2026-05-15"},
+  {id:3,dept:"PD",name:"CAR表達率分析方法建立",desc:"建立流式細胞術偵測CAR表達率之SOP並完成方法驗證",person:"李美華",collab:"QC",status:"進行中",pct:30,due:"2026-07-31"},
+  {id:4,dept:"PD",name:"冷凍保存配方開發",desc:"評估不同冷凍保護劑配方對CAR-T細胞存活率及功能之影響",person:"陳志偉",collab:"",status:"尚未開始",pct:0,due:"2026-08-31"},
+  {id:5,dept:"QC",name:"ARM011放行規格制定",desc:"依ICH Q6B訂定放行規格，包含效能、純度、安全性測試項目",person:"張淑芬",collab:"PD、QA",status:"進行中",pct:70,due:"2026-05-31"},
+  {id:6,dept:"QC",name:"無菌測試方法驗證",desc:"依USP <71>執行無菌測試方法驗證，包含促進生長測試",person:"黃建國",collab:"",status:"進行中",pct:50,due:"2026-06-15"},
+  {id:7,dept:"QC",name:"效能測試（細胞毒殺）建立",desc:"建立CD19+靶細胞殺傷試驗並完成方法驗證",person:"林佳穎",collab:"PD",status:"尚未開始",pct:0,due:"2026-08-31"},
+  {id:8,dept:"QA",name:"cGMP文件系統建立",desc:"建立符合cGMP要求之文件管理系統，包含SOP與批次製造紀錄模板",person:"吳雅婷",collab:"PD、QC",status:"已完成",pct:100,due:"2026-04-30"},
+  {id:9,dept:"QA",name:"Minaris技術移轉QA審核",desc:"審核技術移轉計畫文件，確認cGMP合規性，協調QAA簽署",person:"吳雅婷",collab:"PD、倉庫",status:"進行中",pct:60,due:"2026-06-30"},
+  {id:10,dept:"QA",name:"IND申請CMC章節準備",desc:"準備IND申請之CMC章節，包含製程描述及規格",person:"趙文傑",collab:"PD、QC、臨床",status:"尚未開始",pct:0,due:"2026-09-30"},
+  {id:11,dept:"倉庫",name:"原物料進貨管理流程",desc:"建立ARM011製程所需原物料之進貨、驗收、儲存及發料管理流程",person:"周志強",collab:"QC、QA",status:"已完成",pct:100,due:"2026-05-31"},
+  {id:12,dept:"倉庫",name:"實驗設備校驗計畫執行",desc:"執行年度實驗室設備校驗計畫，包含生物安全櫃、冷凍設備",person:"蔡玉珍",collab:"",status:"進行中",pct:40,due:"2026-12-31"},
+  {id:13,dept:"倉庫",name:"臨床試驗耗材採購",desc:"採購Phase I臨床試驗所需之單次使用耗材及試劑",person:"許文哲",collab:"臨床、QA",status:"進行中",pct:20,due:"2026-07-31"},
+  {id:14,dept:"RD",name:"ARM011 scRNA-seq分析",desc:"利用單細胞定序分析CAR-T細胞亞群組成及功能狀態",person:"劉怡君",collab:"PD",status:"進行中",pct:35,due:"2026-07-31"},
+  {id:15,dept:"RD",name:"次世代CAR構型設計",desc:"研發新型CAR構型以提升持久性（4-1BB vs CD28共刺激域比較）",person:"謝承翰",collab:"",status:"尚未開始",pct:0,due:"2026-12-31"},
+  {id:16,dept:"臨床",name:"Phase I試驗計畫書撰寫",desc:"撰寫ARM011 Phase I劑量爬升臨床試驗計畫書",person:"方淑惠",collab:"QA、RD",status:"進行中",pct:55,due:"2026-07-31"},
+  {id:17,dept:"臨床",name:"IRB申請文件準備",desc:"準備向倫理委員會提交Phase I臨床試驗審查申請文件",person:"方淑惠",collab:"QA",status:"尚未開始",pct:0,due:"2026-08-31"},
+  {id:18,dept:"臨床",name:"臨床試驗站點評估",desc:"評估並遴選Phase I臨床試驗合作醫院及試驗站點",person:"陳俊宏",collab:"",status:"進行中",pct:40,due:"2026-06-30"},
+];
+
+function loadTasks(){
+  try{const s=localStorage.getItem("kanban_tasks");return s?JSON.parse(s):JSON.parse(JSON.stringify(DEFAULT_TASKS))}
+  catch(e){return JSON.parse(JSON.stringify(DEFAULT_TASKS))}
+}
+function saveTasks(){localStorage.setItem("kanban_tasks",JSON.stringify(tasks));localStorage.setItem("kanban_updated",new Date().toISOString())}
+
+let tasks=loadTasks();
+let nextId=Math.max(...tasks.map(t=>t.id),18)+1;
+let filterSt="all";
+let filterDept="all";
+let collapsed={};
+let editingId=null;
+
+function deptColor(id){return DEPTS.find(d=>d.id===id)?.color||"#6B7280"}
+function barColor(s){return s==="已完成"?"#059669":s==="進行中"?"#2563EB":"#D1D5DB"}
+
+function renderSummary(){
+  const total=tasks.length,done=tasks.filter(t=>t.status==="已完成").length;
+  const prog=tasks.filter(t=>t.status==="進行中").length,wait=tasks.filter(t=>t.status==="尚未開始").length;
+  const avg=total?Math.round(tasks.reduce((a,t)=>a+t.pct,0)/total):0;
+  document.getElementById("summary-bar").innerHTML=`
+    <div class="stat-card"><div class="stat-label">工作項目總計</div><div class="stat-val">${total}</div></div>
+    <div class="stat-card"><div class="stat-label">進行中</div><div class="stat-val inprog">${prog}</div></div>
+    <div class="stat-card"><div class="stat-label">已完成</div><div class="stat-val done">${done}</div></div>
+    <div class="stat-card"><div class="stat-label">尚未開始</div><div class="stat-val notstarted">${wait}</div></div>
+    <div class="stat-card"><div class="stat-label">整體進度</div><div class="stat-val">${avg}%</div></div>`;
+}
+
+function renderDeptFilter(){
+  let html=`<button class="ctrl-btn ${filterDept==="all"?"active":""}" onclick="setDeptFilter('all')">所有部門</button>`;
+  DEPTS.forEach(d=>{
+    const cnt=tasks.filter(t=>t.dept===d.id).length;
+    html+=`<button class="ctrl-btn ${filterDept===d.id?"active":""}" onclick="setDeptFilter('${d.id}')" style="${filterDept===d.id?"border-color:"+d.color+";color:"+d.color+";background:#F9FAFB":""}">${d.id} <span style="opacity:.55;font-size:10px">${cnt}</span></button>`;
+  });
+  document.getElementById("dept-filter-row").innerHTML=html;
+}
+
+function renderTicker(){
+  const inprog=tasks.filter(t=>t.status==="進行中");
+  if(!inprog.length){document.getElementById("ticker-inner").textContent="目前無進行中工作";return;}
+  const items=inprog.map(t=>`<span><strong>${t.dept}</strong> · ${t.name} · 負責人：${t.person} · 進度 ${t.pct}%</span>`);
+  document.getElementById("ticker-inner").innerHTML=[...items,...items].join('<span style="margin:0 20px;opacity:.35">·</span>');
+}
+
+function renderBoard(){
+  const board=document.getElementById("board");
+  board.innerHTML="";
+  const upd=localStorage.getItem("kanban_updated");
+  document.getElementById("last-update").textContent=upd?"最後更新："+new Date(upd).toLocaleString("zh-TW",{month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit"}):"即時看板";
+
+  DEPTS.forEach(dept=>{
+    if(filterDept!=="all"&&filterDept!==dept.id)return;
+    const filtered=tasks.filter(t=>t.dept===dept.id&&(filterSt==="all"||t.status===filterSt));
+    const all=tasks.filter(t=>t.dept===dept.id);
+    if(!filtered.length&&filterSt!=="all")return;
+    if(!all.length)return;
+
+    const done=all.filter(t=>t.status==="已完成").length;
+    const prog=all.filter(t=>t.status==="進行中").length;
+    const wait=all.filter(t=>t.status==="尚未開始").length;
+    const isCollapsed=collapsed[dept.id];
+
+    const row=document.createElement("div");
+    row.className="dept-row"+(isCollapsed?" collapsed":"");
+
+    const taskCards=filtered.map(t=>`
+      <div class="task-card" onclick="openEdit(${t.id})">
+        <div class="task-top">
+          <div class="task-name">${t.name}</div>
+          <div class="status-dot ${t.status==="已完成"?"s-done":t.status==="進行中"?"s-prog":"s-wait"}"></div>
+        </div>
+        <div class="progress-bar-wrap"><div class="progress-bar" style="width:${t.pct}%;background:${barColor(t.status)}"></div></div>
+        <div class="task-desc">${t.desc||"—"}</div>
+        <div class="task-foot">
+          <div class="task-person"><i class="ti ti-user" style="font-size:11px"></i> ${t.person||"未指定"}</div>
+          <div style="display:flex;align-items:center;gap:5px">
+            ${t.collab?`<span class="collab-badge"><i class="ti ti-users" style="font-size:10px"></i>${t.collab}</span>`:""}
+            <span class="pct-txt">${t.pct}%</span>
+          </div>
+        </div>
+      </div>`).join("");
+
+    row.innerHTML=`
+      <div class="dept-header" onclick="toggleDept('${dept.id}')">
+        <div class="dept-name-row">
+          <div class="dept-dot" style="background:${dept.color}"></div>
+          <div>
+            <div class="dept-name">${dept.name}</div>
+            <div class="dept-sub">${all.length} 項工作</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="dept-pills">
+            ${prog?`<span class="pill pill-prog"><i class="ti ti-circle-dot" style="font-size:10px;vertical-align:-1px"></i> ${prog} 進行中</span>`:""}
+            ${done?`<span class="pill pill-done"><i class="ti ti-check" style="font-size:10px;vertical-align:-1px"></i> ${done} 完成</span>`:""}
+            ${wait?`<span class="pill pill-wait">${wait} 未開始</span>`:""}
+          </div>
+          <i class="ti ti-chevron-down toggle-icon"></i>
+        </div>
+      </div>
+      ${isCollapsed?"":`<div class="tasks-grid">${taskCards||'<div class="empty-state">此篩選條件下無工作項目</div>'}</div>
+      <button class="add-btn" onclick="event.stopPropagation();openAdd('${dept.id}')"><i class="ti ti-plus" style="font-size:12px"></i> 新增 ${dept.id} 工作項目</button>`}`;
+    board.appendChild(row);
+  });
+}
+
+function render(){renderSummary();renderDeptFilter();renderTicker();renderBoard();}
+
+function setDeptFilter(v){filterDept=v;render();}
+function filterStatus(s,btn){
+  filterSt=s;
+  document.querySelectorAll(".ctrl-btn:not(.add)").forEach(b=>b.classList.remove("active"));
+  if(btn)btn.classList.add("active");
+  render();
+}
+function toggleDept(id){collapsed[id]=!collapsed[id];render();}
+
+function buildDeptOpts(sel){return DEPTS.map(d=>`<option value="${d.id}"${d.id===sel?" selected":""}>${d.name}</option>`).join("");}
+
+function openAdd(deptId){
+  editingId=null;
+  document.getElementById("modal-title").innerHTML='<i class="ti ti-file-plus" style="font-size:18px;color:#2563EB"></i> 新增工作項目';
+  document.getElementById("f-dept").innerHTML=buildDeptOpts(deptId||DEPTS[0].id);
+  ["f-name","f-desc","f-person","f-collab","f-due"].forEach(id=>document.getElementById(id).value="");
+  document.getElementById("f-status").value="尚未開始";
+  document.getElementById("f-pct").value=0;
+  document.getElementById("f-pct-val").textContent="0%";
+  document.getElementById("btn-del").style.display="none";
+  document.getElementById("modal").classList.add("open");
+}
+
+function openEdit(id){
+  const t=tasks.find(x=>x.id===id);if(!t)return;
+  editingId=id;
+  document.getElementById("modal-title").innerHTML='<i class="ti ti-edit" style="font-size:18px;color:#2563EB"></i> 編輯工作項目';
+  document.getElementById("f-dept").innerHTML=buildDeptOpts(t.dept);
+  document.getElementById("f-name").value=t.name;
+  document.getElementById("f-desc").value=t.desc||"";
+  document.getElementById("f-person").value=t.person||"";
+  document.getElementById("f-collab").value=t.collab||"";
+  document.getElementById("f-status").value=t.status;
+  document.getElementById("f-pct").value=t.pct;
+  document.getElementById("f-pct-val").textContent=t.pct+"%";
+  document.getElementById("f-due").value=t.due||"";
+  document.getElementById("btn-del").style.display="flex";
+  document.getElementById("modal").classList.add("open");
+}
+
+function closeModal(e){
+  if(!e||e.target===document.getElementById("modal"))
+    document.getElementById("modal").classList.remove("open");
+}
+
+function saveTask(){
+  const name=document.getElementById("f-name").value.trim();
+  if(!name){alert("請填寫工作項目名稱");return;}
+  const obj={dept:document.getElementById("f-dept").value,name,
+    desc:document.getElementById("f-desc").value.trim(),
+    person:document.getElementById("f-person").value.trim()||"未指定",
+    collab:document.getElementById("f-collab").value.trim(),
+    status:document.getElementById("f-status").value,
+    pct:parseInt(document.getElementById("f-pct").value),
+    due:document.getElementById("f-due").value};
+  if(editingId){const i=tasks.findIndex(t=>t.id===editingId);tasks[i]={...tasks[i],...obj};}
+  else tasks.push({id:nextId++,...obj});
+  saveTasks();
+  document.getElementById("modal").classList.remove("open");
+  render();
+}
+
+function deleteTask(){
+  if(!editingId)return;
+  if(!confirm("確定要刪除這個工作項目？"))return;
+  tasks=tasks.filter(t=>t.id!==editingId);
+  saveTasks();
+  document.getElementById("modal").classList.remove("open");
+  render();
+}
+
+render();
+setInterval(render,60000);
+</script>
+</body>
+</html>
